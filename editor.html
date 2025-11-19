@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrie - Editor de textos básico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            --height:120%;
+            max-width: 900px;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar button {
+            background: white;
+            border: 1px solid #dee2e6;
+            padding: 0px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .toolbar button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .toolbar button:active {
+            transform: translateY(0);
+        }
+
+        .style-select {
+            background: white;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .style-select:hover {
+            border-color: #667eea;
+        }
+
+        .style-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #editor {
+            --min-height: 400px;
+            padding: 8px 16px;
+            font-size: 16px;
+            line-height: 1.6;
+            outline: none;
+            color: #333;
+        }
+
+        #editor:empty:before {
+            content: 'Comece a escrever...';
+            color: #adb5bd;
+        }
+
+        #editor h1 {
+            font-size: 2em;
+            margin: 0.67em 0;
+            font-weight: bold;
+        }
+
+        #editor h2 {
+            font-size: 1.5em;
+            margin: 0.75em 0;
+            font-weight: bold;
+        }
+
+        #editor h3 {
+            font-size: 1.17em;
+            margin: 0.83em 0;
+            font-weight: bold;
+        }
+
+        #editor h4 {
+            font-size: 1em;
+            margin: 1em 0;
+            font-weight: bold;
+        }
+
+        #editor blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 20px;
+            margin: 1em 0;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        #editor p {
+            margin: 0.5em 0;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-top: 1px solid #e9ecef;
+            font-size: 12px;
+            color: #6c757d;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <button onclick="executarComando('undo')" title="Desfazer">↩️</button>
+            <button onclick="executarComando('redo')" title="Refazer">↪️</button>
+            <select onchange="mudarEstiloParagrafo(this.value)" class="style-select">
+                <option value="p">📝 Parágrafo</option>
+                <option value="h1">📰 Título 1</option>
+                <option value="h2">📄 Título 2</option>
+                <option value="h3">📃 Título 3</option>
+                <option value="h4">📋 Título 4</option>
+                <option value="blockquote">💬 Citação</option>
+            </select>
+            <button onclick="executarComando('bold')" title="Negrito">🅱️</button>
+            <button onclick="executarComando('italic')" title="Itálico">🔤</button>
+            <button onclick="executarComando('underline')" title="Sublinhado">U̲</button>
+            <button onclick="executarComando('strikeThrough')" title="Riscado">S̶</button>
+            <button onclick="executarComando('justifyLeft')" title="Alinhar à esquerda">⬅️</button>
+            <button onclick="executarComando('justifyCenter')" title="Centralizar">↔️</button>
+            <button onclick="executarComando('justifyRight')" title="Alinhar à direita">➡️</button>
+            <button onclick="executarComando('insertUnorderedList')" title="Lista com marcadores">📌</button>
+            <button onclick="executarComando('insertOrderedList')" title="Lista numerada">🔢</button>
+            <button onclick="limparFormatacao()" title="Limpar tudo">🗑️</button>
+            <button onclick="document.getElementById('file-input').click();" title="Abre">📂</button>
+            <button onclick="saveContent()" title="Download">💾</button>
+            
+        </div>
+        
+        <div id="editor" contenteditable="true"></div>
+        
+        <div class="status-bar">
+            <span id="charCount">0 caracteres</span>
+            <span id="wordCount">0 palavras</span>
+        </div>
+    </div>
+    
+    <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(this.files)">
+
+    <script>
+				var docName = 'documento.html';
+        const editor = document.getElementById('editor');
+        editor.addEventListener('paste',(ev)=>{
+					//event.preventDefault()
+					var t = event.clipboardData.getData('text/plain');
+					alert('text='+t);
+					// perguntar text/plain text/html text/rtf image...
+				})
+        const charCount = document.getElementById('charCount');
+        const wordCount = document.getElementById('wordCount');
+
+				function d(s) {
+					console.log(s);
+				}
+        // Manipular upload de arquivos
+        function handleFileUpload(files) {
+            selectedFiles = Array.from(files);
+            
+            if (selectedFiles.length > 0) {
+                const file = selectedFiles[0];
+                d(file)
+								const reader = new FileReader();
+								reader.onload = function(e) {
+										//d(e)
+										const conteudo = ''+e.target.result; 
+										if (conteudo.indexOf('<')!=-1) {
+											if (file.name) docName = file.name;
+											abreContent(conteudo);
+										} else {
+											alert('erro, não html, invalido..\n\n'+conteudo);
+										}
+										//document.getElementById('conteudoLido').innerText = conteudo;
+										//console.log("Conteúdo do arquivo lido:", conteudo);
+								};
+								reader.readAsText(file);                
+            }
+        }        
+
+        function executarComando(comando) {
+            document.execCommand(comando, false, null);
+            editor.focus();
+        }
+
+        function mudarEstiloParagrafo(tag) {
+            document.execCommand('formatBlock', false, tag);
+            editor.focus();
+        }
+
+        function limparFormatacao() {
+            if (confirm('Deseja limpar todo o conteúdo?')) {
+                editor.innerHTML = '';
+                atualizarContadores();
+            }
+        }
+
+        function atualizarContadores() {
+            const texto = editor.innerText || '';
+            const caracteres = texto.length;
+            const palavras = texto.trim() ? texto.trim().split(/\s+/).length : 0;
+            
+            charCount.textContent = `${caracteres} caracteres`;
+            wordCount.textContent = `${palavras} palavras`;
+        }
+        function abreContent(tx) {
+					editor.innerHTML = tx;
+				}
+        function saveContent() {
+            const content = editor.innerHTML;
+            alert(content);
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = docName;
+            a.click();
+            URL.revokeObjectURL(url);
+            //lert('Conteúdo salvo com sucesso!');
+        }        
+
+        editor.addEventListener('input', atualizarContadores);
+        editor.addEventListener('keyup', atualizarContadores);
+        
+        atualizarContadores();
+    </script>
+</body>
+</html>
