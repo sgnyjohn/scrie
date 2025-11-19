@@ -1,2 +1,2 @@
 # scrie
-Um editor de textos básico
+Editor de textos básico
