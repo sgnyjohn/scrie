@@ -2,6 +2,10 @@
 <html lang="pt-BR">
 <head>
 	<meta charset="UTF-8">
+	<meta og:title="">
+  <meta og:description="">
+  <meta og:image="">
+  <meta og:url="">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Scrie - Editor de textos básico</title>
 	<style>
@@ -145,11 +149,56 @@
 			display: flex;
 			justify-content: space-between;
 		}
+		
+		/* Estilo básico do diálogo */
+		dialog {
+			border: none;
+			border-radius: 8px;
+			padding: 7px;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+			/* Garante centralização manual caso o browser ignore o padrão */
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			margin: 0;			
+		}
+
+		/* Estilo do fundo (backdrop) */
+		dialog::backdrop {
+			background-color: rgba(0, 0, 0, 0.5);
+			backdrop-filter: blur(2px); /* Efeito de desfoque ao fundo */
+		}
+
+		dialog .acoes {
+			margin-top: 20px;
+			text-align: right;
+		}		
 	</style>
 </head>
 <body>
 	<div class="container">
 		<div class="toolbar">
+			<button id='ogTypeAbrir' title="tipo de documento">?</button>
+			<dialog id="ogType" value="article">
+				<div class="acoes">
+					<button id="ogTypeVoltar">◁</button>
+				</div>				
+				<select name="ogType">
+					<option value="article">📄 Artigo / Notícia</option>
+					<option value="website">🌐 Website (Geral)</option>
+					<option value="book">📖 Livro</option>
+					<option value="profile">👤 Perfil Pessoal</option>
+					<option value="video.movie">🎬 Filme / Vídeo</option>
+					<option value="video.episode">Episódio de série</option>
+					<option value="video.tv_show">Série de TV</option>
+					<option value="video.other">Outro vídeo</option>
+					<option value="music.song">🎵 Música / Faixa</option>
+					<option value="music.album">Álbum</option>
+					<option value="music.playlist">Playlist</option>
+					<option value="music.radio_station">Rádio</option>
+				</select>
+			</dialog>
 			<button onclick="executarComando('undo')" title="Desfazer">↩️</button>
 			<button onclick="executarComando('redo')" title="Refazer">↪️</button>
 			<select onchange="mudarEstiloParagrafo(this.value)" class="style-select">
@@ -169,7 +218,7 @@
 			<button onclick="executarComando('justifyRight')" title="Alinhar à direita">➡️</button>
 			<button onclick="executarComando('insertUnorderedList')" title="Lista com marcadores">📌</button>
 			<button onclick="executarComando('insertOrderedList')" title="Lista numerada">🔢</button>
-			<button onclick="limparFormatacao()" title="Limpar tudo">🗑️</button>
+			<button onclick="novoDoc()" title="Novo Documento">🗑️</button>
 			<button onclick="document.getElementById('file-input').click();" title="Abre">📂</button>
 			<button onclick="saveContent()" title="Download">💾</button>
 			
@@ -186,43 +235,103 @@
 	<input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(this.files)">
 
 	<script>
-		var docName = 'documento.html';
+		const docNameP = 'documento.html'; 
+		var docName = docNameP;
 		const editor = document.getElementById('editor');
 		editor.addEventListener('paste',(ev)=>{
-			event.preventDefault();
-      console.log(ev);
-			var t = event.clipboardData.getData('text/html');
-			//alert('text='+t);
-			const d = document.createElement('div');
-			d.innerHTML = t;
-      function removeSrc(el) {
-      }
-			function removerTodosOsAtributos(ele) {
-				if (!ele || ele.nodeType !== 1) {
-					return;
+			//FILTROS disponíveis...
+			// ideal ARRAY não OBJECT para PRIORIDADE no tipo em detrimento de outro
+			const filtros = {
+				//'application/whatsapp':(dat)=>{
+				// txt com os ** para negrito, etc... 
+				// 		manda junto text/plain
+				//	console.log(dat);
+				//}
+				//,
+				'text/html':(ht)=>{
+					const d = document.createElement('div');
+					d.innerHTML = ht;
+					function removeSrc(el) {
+					}
+					function removerTodosOsAtributos(ele) {
+						if (!ele || ele.nodeType !== 1) {
+							return;
+						}
+						const attr = Array.from(ele.attributes);
+						for (let i = 0; i < attr.length; i++) {
+							// removeAttribute é mais seguro e direto do que setAttribute(attr.name, null)
+							const tn = ele.tagName.toLowerCase();
+							const an = attr[i].name.toLowerCase();
+							if (an == 'src') 
+								removeSrc(ele,attr[i].name);
+							//console.log(attr[i].name,ele.tagName);
+							if (an != 'style' && 'a.href img.src'.indexOf(tn+'.'+an)==-1)
+								ele.removeAttribute(attr[i].name);
+						}
+						const children = Array.from(ele.children);
+						for (let i = 0; i < children.length; i++) {
+							removerTodosOsAtributos(children[i]);
+						}
+					}
+					//remover atributos
+					removerTodosOsAtributos(d);
+					//event.clipboardData.setData('text/html',d.innerHTML);
+					//alert('html='+d.innerHTML);
+					document.execCommand('insertHTML',false,d.innerHTML);
+					// perguntar text/plain text/html text/rtf image...
 				}
-				const attr = Array.from(ele.attributes);
-				for (let i = 0; i < attr.length; i++) {
-					// removeAttribute é mais seguro e direto do que setAttribute(attr.name, null)
-          const tn = ele.tagName.toLowerCase();
-          const an = attr[i].name.toLowerCase();
-					if (an == 'src') 
-						removeSrc(ele,attr[i].name);
-          //console.log(attr[i].name,ele.tagName);
-					if (an != 'style' && 'a.href img.src'.indexOf(tn+'.'+an)==-1)
-						ele.removeAttribute(attr[i].name);
-				}
-				const children = Array.from(ele.children);
-				for (let i = 0; i < children.length; i++) {
-					removerTodosOsAtributos(children[i]);
+				,
+				'text/plain':(tx)=>{
+					const v = tx.split('\n');
+					const vr = [];
+					var va = '?';
+					for (var i in v) {
+						v[i] = v[i].trim();
+						if (v[i]=='') {
+							// 2 vazias seguidas põe br
+							if (va=='') {
+								vr.push('<br/>');
+								va = '?';
+							} else {
+								va = v[i];
+							}
+						} else {
+							var va = v[i];
+							vr.push('<p>'+va+'</p>');
+						}
+					}
+					document.execCommand('insertHTML',false,vr.join('\n'));
 				}
 			}
-			//remover atributos
-			removerTodosOsAtributos(d);
-			//event.clipboardData.setData('text/html',d.innerHTML);
-			//alert('html='+d.innerHTML);
-      document.execCommand('insertHTML',false,d.innerHTML);
-			// perguntar text/plain text/html text/rtf image...
+			// VERIFICAR filtro para TIPOS disponíveis
+			console.log(ev.clipboardData.types);
+			for (var i in ev.clipboardData.types) {
+				const tp = ev.clipboardData.types[i];
+				if (filtros[tp]) {
+					//getData funciona uma ÚNICA vez
+					const data = ev.clipboardData.getData(tp);
+					try {
+						filtros[tp](data);
+						ev.preventDefault();
+						console.log('OK filtro '+tp);
+						return;
+					} catch (e) {
+						console.log('ERRO filtro '+tp,e);
+					}
+				} else {
+					console.log('paste tipo('+tp+') sem filtro ');
+				}
+			}
+			//sem FILTRO, paste padrão
+			console.log('paste modo AUTO..');
+			/*var t = ev.clipboardData.getData('text/html');
+			if (t=='') {
+				console.log('paste TXT/auto ou VAZIO...',ev);
+				return;
+			} else {
+				console.log('vai limpar...',ev);
+			}
+			*/
 		})
 		const charCount = document.getElementById('charCount');
 		const wordCount = document.getElementById('wordCount');
@@ -268,9 +377,10 @@
 			editor.focus();
 		}
 
-		function limparFormatacao() {
+		function novoDoc() {
 			if (confirm('Deseja limpar todo o conteúdo?')) {
 				editor.innerHTML = '';
+				docName = docNameP;
 				atualizarContadores();
 			}
 		}
@@ -284,11 +394,51 @@
 			wordCount.textContent = `${palavras} palavras`;
 		}
 		function abreContent(tx) {
-					editor.innerHTML = tx;
+			editor.innerHTML = tx;
+		}
+
+		//limpa tags sem child #text visivel
+		//  (inúteis, exeto table tbody tr ?)
+		function trimm(x) {
+			const tb='\n\t ';
+			while (x.length!=0 && tb.indexOf(x.charAt(0))!=-1) {
+				x=x.substring(1);
+			}
+			while (x.length!=0 && tb.indexOf(x.charAt(x.length-1))!=-1) {
+				x=x.substring(0,x.length-1);
+			}
+			return x;
+		}
+		function htmlLimpaTagsInuteis(childNodes) {
+			var t = [];
+			for (var f=0;f<childNodes.length;f++) {
+				if (childNodes.item(f).tagName=='#text') {
+					t += childNodes.item(f).textContent;
 				}
+			}
+		}
+
 		function saveContent() {
-			const content = editor.innerHTML;
-			//alert(content);
+			if ( docName == docNameP ) 
+				for (const i of 'h1 h2 h3 h4'.split(' ')) {
+					const t = editor.querySelector(i);
+					if (t) {
+						docName = t.textContent;
+						break;
+					}
+				}
+			var content = editor.innerHTML;
+			const aa= '<meta charset="UTF-8">';
+			if (content.indexOf(aa)==-1) {
+				content = aa+'\n'
+					+'<meta og:type="'+ogType.value+'">'
+					+'<meta og:title="'+docName+'">'
+					//+'<meta og:description="">'
+					//+'<meta og:image="">'
+					//+'<meta og:url="">'
+					+content;
+			}
+			//lert(content);
 			const blob = new Blob([content], { type: 'text/html' });
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
@@ -296,6 +446,7 @@
 			a.download = docName;
 			a.click();
 			URL.revokeObjectURL(url);
+			setTimeout(capturarJanela);
 			//lert('Conteúdo salvo com sucesso!');
 		}		
 
@@ -303,6 +454,83 @@
 		editor.addEventListener('keyup', atualizarContadores);
 		
 		atualizarContadores();
+		
+		/////////////////////////////////////////
+		// controle tipo documento
+		const ogType = document.getElementById('ogType');
+		ogType.atualiz = (ev)=>{
+			if (!ogType.value) ogType.value="article";
+			document.getElementById('ogTypeAbrir').setAttribute('title','Tipo de documento '+ogType.value);
+		};
+		ogType.querySelector('select').addEventListener('change', (ev) => {
+			ogType.value = ev.target.value;
+			ogType.atualiz();
+			ogType.close();
+		});
+		// Abrir o diálogo
+		document.getElementById('ogTypeAbrir').addEventListener('click', () => {
+			ogType.showModal();
+		});
+		// Fechar o diálogo (Botão Voltar)
+		document.getElementById('ogTypeVoltar').addEventListener('click', () => {
+			ogType.close();
+		});
+		// Opcional: Fechar ao clicar fora do diálogo
+		ogType.addEventListener('click', (e) => {
+			if (e.target === ogType) {
+				ogType.close();
+			}
+		});
+		setTimeout(ogType.atualiz);
+		///////////////////////////////////////////////////
+		// FUNCOES GERAR IMAGEM MINIATURA ? 
+		// paragrafo multi linha dificil - teria https://html2canvas.hertzen.com/
+		//procura nodos texto.
+		function getSignificado(aRet,dom) {
+			if (aRet.length>3) return;
+			if (!dom) dom = editor;
+			if ('h1 h2 h3 p li'.indexOf(dom.tagName.toLowerCase())!=-1
+				&& dom.textContent.trim().replace(/^\s\n+|\s\n+$/g,'')!='') {
+				aRet.push(dom)
+			} else if (dom.childNodes) {
+				for (var i=0;i<dom.childNodes.length;i++) {
+					const el = dom.childNodes.item(i);
+					getSignificado(aRet,el);
+				}
+			}
+		}
+		function htmlToImage(divElement) { //deepseek
+			// Criar um canvas temporário
+			const canvas = document.createElement('canvas');
+			const ctx = canvas.getContext('2d');
+			
+			// Definir dimensões do canvas
+			const rect = divElement.getBoundingClientRect();
+			canvas.width = rect.width;
+			canvas.height = rect.height;
+			
+			// Configurações do contexto
+			ctx.fillStyle = window.getComputedStyle(divElement).backgroundColor || '#ffffff';
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			
+			var aTex = [];
+			getSignificado(aTex);
+			for (var ei = 0;ei<aTex.length;ei++) {
+				var el = aTex[ei];
+				// Capturar estilos da div
+				const styles = window.getComputedStyle(el);
+				// Desenhar texto básico (limitado)
+				ctx.fillStyle = styles.color || '#000000';
+				ctx.font = styles.font || '16px Arial';
+				ctx.textBaseline = 'top';
+				// Adicionar texto simples
+				ctx.fillText(el.textContent || el.innerText, 10+ei*15, 10);
+			}
+			
+			// Retornar data URL
+			return canvas.toDataURL('image/png');
+		}				
+		
 	</script>
 </body>
 </html>
