@@ -194,7 +194,10 @@
 		dialog .acoes {
 			margin-top: 20px;
 			text-align: right;
-		}		
+		}
+		ul,ol li {
+      margin-left: 20px;
+		}
 	</style>
 </head>
 <body>
@@ -260,7 +263,9 @@
 		const docNameP = 'documento.html'; 
 		var docName = docNameP;
 		const editor = document.getElementById('editor');
+
 		// *************************** COLAR ********************************//
+
 		editor.addEventListener('paste',async (ev)=>{
 			//FILTROS disponíveis...
 			// ideal ARRAY não OBJECT para PRIORIDADE no tipo em detrimento de outro
@@ -298,8 +303,10 @@
 							//if (an != 'style' && 'a.href img.src'.indexOf(tn+'.'+an)==-1)
 							// REMOVE TODOS ATTR exceto OS LISTADOS abaixo - style pode conter posicionamento
 							//   todo - fazer filtro CSS/style
-							if ('a.href img.src'.indexOf(tn+'.'+an)==-1 && style && an!='style')
+							if ('a.href img.src'.indexOf(tn+'.'+an)==-1 && !style ) {// && an!='style') {
+								console.log('rm attr '+tn+'.'+an);
 								ele.removeAttribute(attr[i].name);
+							}
 						}
 						if (tn=='img') {
 							ele.setAttribute('style','max-width:85%;min-width:3%;');
@@ -311,7 +318,8 @@
 							const temTextoDireto = Array.from(ele.childNodes).some(
 								(node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0
 							);
-							if (!temTextoDireto) {
+							//elimina tag e substitui pelos filhos ?
+							if (!temTextoDireto && tn!='a') {
 								if (ele.childNodes.length > 0) {
 									console.log(tn+' vai substituir com os filhos...');
 									ele.replaceWith(...ele.childNodes);
@@ -407,16 +415,27 @@
 					console.log('paste tipo('+tp+') sem filtro ');
 				}
 			}
+			
 			//sem FILTRO, paste padrão
+
+			// atenção! COPIANDO do gerenciador arquivos 
+			// linux traz inclusive o arquivo e fica invisível
+			/*
+				tipos application/x-moz-file,Files items([object DataTransferItemList]) editor.html:368:12
+				item text/html editor.html:373:13
+				paste tipo(application/x-moz-file) sem filtro editor.html:409:14
+				paste tipo(Files) sem filtro editor.html:409:14
+				paste modo AUTO.. editor.html:418:12
+	
+				tipos application/x-moz-file,Files items([object DataTransferItemList]) editor.html:368:12
+				item text/html editor.html:373:13
+				paste tipo(application/x-moz-file) sem filtro editor.html:409:14
+				paste tipo(Files) sem filtro editor.html:409:14
+				paste modo AUTO..
+	
+			*/			
 			console.log('paste modo AUTO..');
-			/*var t = ev.clipboardData.getData('text/html');
-			if (t=='') {
-				console.log('paste TXT/auto ou VAZIO...',ev);
-				return;
-			} else {
-				console.log('vai limpar...',ev);
-			}
-			*/
+
 		})
 		const charCount = document.getElementById('charCount');
 		const wordCount = document.getElementById('wordCount');
@@ -563,15 +582,17 @@
 		}
 
 		function saveContent() {
+			// definir o nome padrao
 			var docD;
 			for (const i of 'h1 h2 h3 h4'.split(' ')) {
 				const t = editor.querySelector(i);
 				if (t) {
-					docD = t.textContent;
+					alert('dsfsdfsdf ('+t.textContent+')');
+					docD = t.textContent.replaceAll(':','𒑖').trim().replaceAll('.',' -');
 					break;
 				}
 			}
-			//
+			// o nome padrao mudou ?
 			if ( docName == docNameP ) {
 				docName = docD;
 			} else if (docName != docD 
@@ -585,21 +606,22 @@
 			if ((p=content.indexOf(fim))!=-1)
 				content = content.substring(0,p);
 			content = '<!DOCTYPE html>'
-				+'<html lang="pt-BR">'
-				+'<meta charset="UTF-8">'
-				+'<head><title>'+docName+'</title>'
-				+'<style>'
-					+'* {background-color:#222;color:#eef;'
-						+'font-family:ReithSans,Helvetica,Arial,sans-serif;letter-spacing:0.04em;}'
-					+'DIV.scrieConteudo{margin:5% 10%;} A {color:#88f;}'
-				+'</style>'
-				+'</head>'
-				+'<body>'
-				+ini
-				+content
-				+fim
-				+'</body>'
-				+'</html>'
+				+'\n<html lang="pt-BR">'
+				+'\n<meta charset="UTF-8">'
+				+'\n<head><title>'+docName+'</title>'
+				+'\n<style>'
+					+'\n* {background-color:#222;color:#eef;font-size:120%;'
+						+'\nfont-family:ReithSans,Helvetica,Arial,sans-serif;letter-spacing:0.04em;}'
+					+'\nDIV.scrieConteudo{margin:5% 10%;} A {color:#88f;}'
+					+'\nul,ol li {margin-left: 25px;}'
+				+'\n</style>\n'
+				+'\n</head>'
+				+'\n<body>'
+				+'\n'+ini
+				+'\n'+content
+				+'\n'+fim
+				+'\n</body>'
+				+'\n</html>'
 			;
 			//alert(content);
 			//lert(content);
