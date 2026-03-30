@@ -6,6 +6,7 @@
   <meta og:description="">
   <meta og:image="">
   <meta og:url="">
+  <link rel="icon" href="editor.ico">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Scrie - Editor de textos básico</title>
 	<style>
@@ -198,6 +199,10 @@
 		ul,ol li {
       margin-left: 20px;
 		}
+		.btn {
+			padding: 8px 20px; background: #4f46e5; color: #fff;
+			border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem;
+		}
 	</style>
 </head>
 <body>
@@ -263,6 +268,302 @@
 		const docNameP = 'documento.html'; 
 		var docName = docNameP;
 		const editor = document.getElementById('editor');
+		
+		function _d() {
+			if (arguments.length==1) {
+				console.log(arguments[0]);
+			} else {
+				console.log(arguments);
+			}
+		}
+
+		function searchStr(Str) {
+			var eu = this;
+			var va = {
+				 'a' : 'áàâã'
+				,'e' : 'éê'
+				,'i' : 'í'
+				,'o' : 'óôõ'
+				,'u' : 'úü'
+				,'c' : 'ç'
+			};
+			var vex = ',.,+,*,?,^,$,(,),[,],{,},\.,'; //aceita |,
+			var vr,tx=''; //vrNot,
+			init(Str);
+			this.getStr = ()=>{return tx;};
+			this.ajuda = (tit)=>{
+				return (tit?tit+'\n\n':'')+'espaço - um E outro'
+					+'\n| - um OU outro'
+					+'\n- - negação'
+					+'\n^ - prefixo palavra inteira'
+					+'\n~ - prefixo para indical palavra iniciando em '
+					+'\n_ - substitui espaços em literais'
+				;		
+			}
+			//################################
+			// se algum verdadeiro... OR
+			function pesqUm(vEx,s) {
+				for (let o=0;o<vEx.length;o++) {
+					// [0] not? - [1] expr
+					if ( vEx[o][0] != vEx[o][1].test(s) ) {
+						return true;
+					}
+				}
+				return false;				
+			}
+			//################################
+			// se todos verdadeiros... AND
+			this.pesq = function(s) {
+				if (tx=='') return true;
+				for (let e=0;e<vr.length;e++) {
+					if (!pesqUm(vr[e],s)) {
+						return false;
+					}
+				}
+				return true;				
+			}
+
+			// palavra inteira ia /(^|\s)ia(\s|$)/
+			function initUm(str) {
+				var r = [false,false];
+				str = str.trim();
+				r[0] = str.charAt(0)=='-'; //negativo, não?
+				if (r[0]) str = str.substring(1);
+				if (str.charAt(0)=='~') {
+					// prefixo palavra
+					r[1] = new RegExp('([!-\/]|^|\\s)'+str.substring(1),'i');
+				} else if (str.charAt(0)=='^') {
+					//palavra
+					r[1] = new RegExp('([!-\/:;]|^|\\s)'+str.substring(1)+'(\\s|$|[!-\/:;])','i');
+				} else {
+					r[1] = new RegExp(rExpr(str),'i');
+				}
+				return r;
+			}
+			function init(o) {
+				var a = o?o.trim():'';
+				// o ou é embutido dentro da expressao
+				a = a.toLowerCase()
+					.replaceAll('  ',' ')
+					.replaceAll('| ','|')
+					.replaceAll(' |','|')
+				;
+				//mudou?
+				if (tx==a) {
+					return false;
+				}
+				tx = a;
+				var v = tx.split(' ');
+				this.v = v;
+				//if (referrer.search(new RegExp("Ral", "i")) == -1) { ...
+				vr = Array();
+				//vrNot = Array();
+				for (let e=0;e<v.length;e++) {
+					vr[e] = [];
+					v[e].split('|').forEach((el)=>{
+						vr[e].push(initUm(el));
+					});
+				}
+				//lert('cond='+o+' '+vr);
+				return true;
+			}
+			this.init = init;
+			//###################################
+			this.txt = function() {
+				return tx;
+			}
+			//###################################
+			this.valid = function() {
+				var r=false;
+				aeval(this.v,function(x) {if (x.length>2) r=true;});
+				return r?NaN:"consulta inválida '"+a+"'";
+			}
+			//###################################
+			function rExpr(t) {
+				//expressão regular acentuação pt-br
+				//áàâãéêíóôõúüñç
+				//deb('==> ('+t+')');
+				t = t.replaceAll('_',' ');
+				var ca='',r = '';
+				for (var i=0;i<t.length;i++) {
+					var c = t.charAt(i);
+					if (vex.indexOf(c)!=-1 && ca!='\\') {
+						//deb('foi');
+						r += '\\'+c;
+					} else if ( va[c] ) {
+						r += '['+c+va[c]+']';
+					} else {
+						r += c;
+					}
+					ca = c;
+				}
+				//eb(t+'==>('+r+') tm='+t.length);
+				//dfsd=sdf;
+				return r;
+			}
+		}
+
+		function DB(doc) {
+			var id=(new Date()).getTime()%3600
+				+Math.floor(Math.random()*1024)
+			;
+			var mt=[];
+			var fl=[];
+			var dom;
+			var nCol = 500;
+			var rg = 1;
+			// frequencia de campo
+			function freq(c) {
+				var vr = {};
+				var tp = 0;
+				rg=0;
+				while (skip()) {
+					var va = vr[mt[rg][c]];
+					if (!va) {
+						vr[mt[rg][c]] = [1];
+					} else {
+						va[0]++;
+					}
+				}
+				var vr1 = [];
+				for (k in vr) vr1.push([k,vr[k][0]]); //toArray
+				vr1.sort((a, b) => b[1] - a[1]);
+				var r = '<table><th>chave</th><th>n</th>';
+				for (k in vr1) {
+					r += '<tr><td>'+vr1[k][0]+'</td><td>'+vr1[k][1]+'</td></tr>';
+				}
+				return r+'</table>';
+			}
+			// clicou na tabela
+  		function clickTable(ev) {
+				var t = ev.target;
+				var tg = t.tagName.toLowerCase();
+				var cl = t.className;
+				_d('clicou ',t,tg,cl);
+				if (tg=='th') {
+					var col = t.closest('tr').getAttribute('col');
+					var d = new dialogo('<h4>opções coluna "'+t.textContent+'" '+col+'</h4>'
+							+'<label>filtrar</label>'
+							+'<input>'
+						,''
+							+'<button class=btn name="ok">OK</button>'
+							+'<button class=btn name="f">frequencia</button>'
+							+'<button class=btn name="c">Cancelar</button>'
+						,(ev)=>{
+							var t = ev.target;
+							var n = t.name;
+							_d('filtro '+t+' '+t.tagName+' '+t.className+' n('+n);
+							if (n=='c') {
+								d.close();
+								return
+							} else if (n=='f') {
+								d.close();
+								var ds = document.createElement('div');
+								ds.innerHTML = freq(col);
+								doc.appendChild(ds);
+							} else if (n=='ok') {
+								var v = d.dom.querySelector('input').value;
+								//             .querySelector('input').value
+								_d('xxdf',d.dom,v);
+								fl[col] = new searchStr(v);
+								tds();
+							}
+						}
+					);
+					//_d('sdfçl',d);
+					d.show();					
+				}
+			}
+			//
+  		function tds(col) {
+				//elimina celulas class dad da tabela.
+			  var tt=0;
+			  var c;
+			  while ((c=dom.querySelector('td.dad'))) {
+					c.remove();
+					tt++;
+				}
+				//adiciona colunas cfme filtro
+				var ts = 0;
+				rg = 0;
+				while (skip()) ts++;
+				alert('total sel '+ts+' de '+(mt.length));
+				rg = 0;
+				var n = 0
+				var trs = dom.querySelectorAll('tr');
+				while (n<nCol && skip()) {
+					trs.forEach((tr,i)=>{
+						//_d('add '+rg+','+i+' n='+n);
+						var td = document.createElement('td');
+						td.className = 'dad';
+						td.innerHTML = mt[rg][i];
+						tr.appendChild(td);
+					});
+					n++;
+				}
+				//_d('fim');
+			}
+			//
+			function filtro() {
+				if (rg>=mt.length) return false;
+				for (k in fl) {
+					if (!fl[k].pesq(mt[rg][k])) {
+						return false;
+					}
+				}
+				return true;
+			}
+			//
+			function skip() {
+				var r = false;
+				rg++;
+				while (!(r=filtro()) && rg<mt.length) {
+					rg++;
+				}
+				return r;
+			}
+			//
+			this.html = () => {
+				var vr=['<table id="'+id+'" class="db">'];
+				mt[0].forEach((vl,i)=>{
+					vr.push('<tr col="'+i+'" class="cab"><th>'+vl+'</th></tr>');
+				});
+				vr.push('</table>');
+				var p=0;
+				function proc() {
+					var s = document.getElementById(id);
+					if (!s) {
+						if (p>50) {
+							if (!confirm('tabela não encontrada, tentar novamente?')) {
+								return;
+							}
+							p=0;
+						}
+						setTimeout(proc,100);
+					}
+					dom = s;
+					_d('add click',clickTable,dom);
+					dom.addEventListener('click',clickTable);
+					tds();
+				}
+				setTimeout(proc,100);
+				return vr.join('');
+			}
+			//
+			this.initCsv = (tx,Del)=>{
+				del = Del;
+				//guarda txt
+				var d = document.createElement('pre');
+				d.className = 'DBcsv';
+				d.idCod = id;
+				d.style.cssText = 'display:none;';
+				d.textContent = tx;
+				editor.appendChild(d);
+				tx.split('\n').forEach((vl,i)=>{
+					mt[i] = vl.split(del);
+				});
+			}
+		}
 
 		// *************************** COLAR ********************************//
 
@@ -344,25 +645,87 @@
 				}
 				,
 				'text/plain':(tx)=>{
-					const v = tx.split('\n');
-					const vr = [];
-					var va = '?';
-					for (var i in v) {
-						v[i] = v[i].trim();
-						if (v[i]=='') {
-							// 2 vazias seguidas põe br
-							if (va=='') {
-								vr.push('<br/>');
-								va = '?';
-							} else {
-								va = v[i];
-							}
-						} else {
-							var va = v[i];
-							vr.push('<p>'+va+'</p>');
-						}
+					const v = tx.trim().split('\n');
+					//
+					function comoDB(del) {
+						if (!del) del=';';
+						var db = new DB(editor);db.initCsv(tx,del);
+						document.execCommand('insertHTML',false,db.html()+'</table>');
 					}
-					document.execCommand('insertHTML',false,vr.join('\n'));
+					//
+					function comoCsv(del) {
+						if (!del) del=';';
+						const vr = []
+						function th() {
+							vr.push('<table class="calc" boder=1><tr>');
+							v[0].split(del).forEach((vl)=>{
+								vr.push('<th>'
+									+vl.replaceAll(' ','</br>')
+									+'</th>'
+								);
+							});
+							vr.push('</tr>');
+							//lert(vr);
+							return 1;
+						}
+						for (var i=th();i<v.length;i++) {
+							var r = v[i].trim().split(del);
+							//lert(r);
+							vr.push('<tr>');
+							r.forEach((vl)=>{
+								//ert(i+' '+vl);
+								vr.push('<td>'+vl+'</td>');
+							});
+							vr.push('</tr>');
+						}
+						document.execCommand('insertHTML',false,vr.join('\n')+'</table>');
+					}
+					//
+					function comoTexto() {
+						const vr = [];
+						var va = '?';
+						for (var i in v) {
+							v[i] = v[i].trim();
+							if (v[i]=='') {
+								// 2 vazias seguidas põe br
+								if (va=='') {
+									vr.push('<br/>');
+									va = '?';
+								} else {
+									va = v[i];
+								}
+							} else {
+								var va = v[i];
+								vr.push('<p>'+va+'</p>');
+							}
+						}
+						document.execCommand('insertHTML',false,vr.join('\n'));
+					}					
+					//
+					var d = new dialogo('<h1>colar somente texto</h1>'
+							+'<p>teste de um texto longo e teste de um texto longo e teste de um texto longo e teste de um texto longo e </p>'
+						,''
+							+'<button class=btn name="bd">dados</button>'
+							+'<button class=btn name="csv">csv / calc</button>'
+							+'<button class=btn name="txt">texto</button>'
+						,(ev)=>{
+							var t = ev.target;
+							var n = t.name;
+							_d('clicou '+t+' '+t.tagName+' '+t.className+' n('+n);
+							if (n=='bd') {
+								d.close();
+								comoDB();
+							}else if (n=='csv') {
+								d.close();
+								comoCsv();
+							} else if (n=='txt') {
+								d.close();
+								comoTexto();
+							}
+						}
+					);
+					//_d('sdfçl',d);
+					d.show();
 				}
 			}
 			// VERIFICAR filtro para TIPOS disponíveis
@@ -441,6 +804,75 @@
 		const wordCount = document.getElementById('wordCount');
 		const ini = '<div class="scrieConteudo">';
 		const fim = '</div><!--scrieConteudo-->';
+
+		function dialogo(titulo, tx, func) {
+		  d('criar dialogo');
+			this.show = () =>  {
+				document.body.appendChild(overlay);
+			}
+			this.close = () => {
+				document.body.removeChild(overlay);
+			}
+			// Create overlay
+			const overlay = document.createElement('div');
+			overlay.style.cssText = `
+				position: fixed; inset: 0;
+				background: rgba(0,0,0,0.5);
+				display: flex; align-items: center; justify-content: center;
+				z-index: 9999;
+			`;
+			// Create dialog box
+			const box = document.createElement('div');
+			this.dom = box;
+			box.style.cssText = `
+				background: #fff; border-radius: 8px;
+				padding: 24px; max-width: 400px; width: 90%;
+				box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+				font-family: sans-serif;
+			`;
+			// text
+			const h2 = document.createElement('div');
+			h2.innerHTML = titulo;
+			h2.style.cssText = 'margin: 0 0 12px; font-size: 1.2rem; color: #333;';
+
+			// Buttons
+			const btnRow = document.createElement('div');
+			btnRow.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
+			btnRow.innerHTML = tx;
+
+
+			box.appendChild(h2);
+			//box.appendChild(p);
+			box.appendChild(btnRow);
+			overlay.appendChild(box);
+			//bloqueios
+			overlay.addEventListener('click', (e) => e.stopPropagation());
+			// Bloqueia Tab/Esc saindo do diálogo
+			const trapFocus = (e) => {
+				if (e.key === 'Escape') return;          // ignora Esc (não fecha)
+				if (e.key === 'Tab') {
+					const focusable = box.querySelectorAll('button');
+					const first = focusable[0];
+					const last  = focusable[focusable.length - 1];
+					if (e.shiftKey && document.activeElement === first) {
+						e.preventDefault(); last.focus();
+					} else if (!e.shiftKey && document.activeElement === last) {
+						e.preventDefault(); first.focus();
+					}
+				}
+			};
+			document.addEventListener('keydown', trapFocus);
+			
+			if (func) overlay.addEventListener('click', func);
+			
+		}
+
+		
+		
+		//objeto tabela / calc
+		function calc() {
+		
+		}
 
 		function htmlTrim(html) {
 			// Remove espaços e tabs entre tags, mantendo quebras de linha
@@ -587,7 +1019,7 @@
 			for (const i of 'h1 h2 h3 h4'.split(' ')) {
 				const t = editor.querySelector(i);
 				if (t) {
-					alert('dsfsdfsdf ('+t.textContent+')');
+					//lert('dsfsdfsdf ('+t.textContent+')');
 					docD = t.textContent.replaceAll(':','𒑖').trim().replaceAll('.',' -');
 					break;
 				}
