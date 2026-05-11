@@ -149,7 +149,7 @@
 		}
 
 		#editor p {
-			margin: 0.5em 0;
+			xmargin: 0.5em 0;
 		}
 		#editor table {
 			border-spacing: 0;
@@ -203,6 +203,19 @@
 			padding: 8px 20px; background: #4f46e5; color: #fff;
 			border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem;
 		}
+		code {
+			font-family: monospace;
+			font-size: 80%;
+  		font-weight: 700;
+		}
+		pre {
+  		font-weight: 500;
+			margin: 5px;
+			padding: 5px;
+			border:1px solid;
+			font-family: monospace;
+			font-size: 80%;			
+		}
 	</style>
 </head>
 <body>
@@ -229,12 +242,14 @@
 			</dialog>
 			<button onclick="executarComando('undo')" title="Desfazer">↩️</button>
 			<button onclick="executarComando('redo')" title="Refazer">↪️</button>
-			<select onchange="mudarEstiloParagrafo(this.value)" class="style-select">
+			<select onchange="mudarEstiloParagrafo(this)" class="style-select">
+				<option value="">(estilo §)</option>
 				<option value="p">📝 Parágrafo</option>
 				<option value="h1">📰 Título 1</option>
 				<option value="h2">📄 Título 2</option>
 				<option value="h3">📃 Título 3</option>
 				<option value="h4">📋 Título 4</option>
+				<option value="pre">🌀 pre/code</option>
 				<option value="blockquote">💬 Citação</option>
 			</select>
 			<button onclick="executarComando('bold')" title="Negrito">🅱️</button>
@@ -579,7 +594,11 @@
 				//,
 				'text/html':(ht)=>{
 					//ht = ht.replaceAll('://','...');
-					const style = confirm('manter atributos style ?');
+					const style = prompt('m - manter atributos style\nr - remover atributos\ni - html integral','m').toLowerCase();
+					if (style=='i') {
+						document.execCommand('insertHTML',false,ht);
+						return;
+					}
 					const d = document.createElement('div');
 					d.innerHTML = htmlTrim(ht);
 					//ht = getHtml(d); d.innerHTML = ht; //retira brancos entre tags
@@ -604,7 +623,7 @@
 							//if (an != 'style' && 'a.href img.src'.indexOf(tn+'.'+an)==-1)
 							// REMOVE TODOS ATTR exceto OS LISTADOS abaixo - style pode conter posicionamento
 							//   todo - fazer filtro CSS/style
-							if ('a.href img.src'.indexOf(tn+'.'+an)==-1 && !style ) {// && an!='style') {
+							if ('a.href img.src'.indexOf(tn+'.'+an)==-1 && style=='r' ) {// && an!='style') {
 								console.log('rm attr '+tn+'.'+an);
 								ele.removeAttribute(attr[i].name);
 							}
@@ -688,12 +707,12 @@
 							v[i] = v[i].trim();
 							if (v[i]=='') {
 								// 2 vazias seguidas põe br
-								if (va=='') {
-									vr.push('<br/>');
-									va = '?';
-								} else {
+							//if (va=='') {
+									vr.push('<p><br/></p>');
+							//		va = '?';
+							//	} else {
 									va = v[i];
-								}
+							//	}
 							} else {
 								var va = v[i];
 								vr.push('<p>'+va+'</p>');
@@ -708,6 +727,7 @@
 							+'<button class=btn name="bd">dados</button>'
 							+'<button class=btn name="csv">csv / calc</button>'
 							+'<button class=btn name="txt">texto</button>'
+							+'<button class=btn name="c">cancelar</button>'
 						,(ev)=>{
 							var t = ev.target;
 							var n = t.name;
@@ -721,6 +741,8 @@
 							} else if (n=='txt') {
 								d.close();
 								comoTexto();
+							} else if (n=='c') {
+								d.close();
 							}
 						}
 					);
@@ -760,7 +782,7 @@
 				return;
 			}
 			
-			// COLAR html txt
+			// COLAR html txt etc...
 			for (var i in ev.clipboardData.types) {
 				const tp = ev.clipboardData.types[i];
 				if (filtros[tp]) {
@@ -961,9 +983,14 @@
 			editor.focus();
 		}
 
-		function mudarEstiloParagrafo(tag) {
-			document.execCommand('formatBlock', false, tag);
-			editor.focus();
+		function mudarEstiloParagrafo(sel) {
+			var tag = sel.value;
+			if (tag!="") {
+				document.execCommand('formatBlock', false, tag);
+				sel.value = "";
+				editor.focus();
+				
+			}
 		}
 
 		function novoDoc() {
@@ -1042,10 +1069,12 @@
 				+'\n<meta charset="UTF-8">'
 				+'\n<head><title>'+docName+'</title>'
 				+'\n<style>'
-					+'\n* {background-color:#222;color:#eef;font-size:120%;'
+					+'\n* {background-color:#222;color:#eef;'
 						+'\nfont-family:ReithSans,Helvetica,Arial,sans-serif;letter-spacing:0.04em;}'
 					+'\nDIV.scrieConteudo{margin:5% 10%;} A {color:#88f;}'
 					+'\nul,ol li {margin-left: 25px;}'
+					+'\ncode {font-family: monospace;font-size: 80%;font-weight: 700;}'
+					+'\npre {margin: 5px;padding: 5px;border:1px solid;font-family: monospace;font-size: 80%;font-weight: 500;}'
 				+'\n</style>\n'
 				+'\n</head>'
 				+'\n<body>'
