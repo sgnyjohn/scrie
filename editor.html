@@ -242,15 +242,16 @@
 			</dialog>
 			<button onclick="executarComando('undo')" title="Desfazer">↩️</button>
 			<button onclick="executarComando('redo')" title="Refazer">↪️</button>
-			<select onchange="mudarEstiloParagrafo(this)" class="style-select">
+			<select id="selTagName" onchange="mudarEstiloParagrafo(this)" class="style-select">
 				<option value="">(estilo §)</option>
-				<option value="p">📝 Parágrafo</option>
-				<option value="h1">📰 Título 1</option>
-				<option value="h2">📄 Título 2</option>
-				<option value="h3">📃 Título 3</option>
-				<option value="h4">📋 Título 4</option>
-				<option value="pre">🌀 pre/code</option>
-				<option value="blockquote">💬 Citação</option>
+				<option value="P">📝 Parágrafo</option>
+				<option value="H1">📰 Título 1</option>
+				<option value="H2">📄 Título 2</option>
+				<option value="H3">📃 Título 3</option>
+				<option value="H4">📋 Título 4</option>
+				<option value="PRE">🌀 pre/code</option>
+				<option value="BLOCKQUOTE">💬 Citação</option>
+				<option value="TABLE">table</option>
 			</select>
 			<button onclick="executarComando('bold')" title="Negrito">🅱️</button>
 			<button onclick="executarComando('italic')" title="Itálico">🔤</button>
@@ -268,7 +269,7 @@
 	</div>
 
 
-		<div id="editor" contenteditable="true"><br></div>
+		<div id="editor" contenteditable="true"><br/></div>
 		
 	
 	<div class="status-bar">
@@ -283,6 +284,7 @@
 		const docNameP = 'documento.html'; 
 		var docName = docNameP;
 		const editor = document.getElementById('editor');
+		const selTagName = document.getElementById('selTagName');
 		
 		function _d() {
 			if (arguments.length==1) {
@@ -580,8 +582,41 @@
 			}
 		}
 
-		// *************************** COLAR ********************************//
+		
+		// *************************** POS ********************************//
+		var _mov = (ev)=> {
+			//procura tag select
+			function eTag(tn) {
+				for (let i = 0; i < selTagName.options.length; i++) {
+					const option = selTagName.options[i];
+					//console.log(`Value: ${option.value}, Texto: ${option.text}`);
+					if (option.value==tn) {
+						return i;
+					}
+				}
+				return -1;
+			}
 
+			const selection = window.getSelection();
+			// Verifica se a seleção está dentro do seu editor
+			if (selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+				// anchorNode geralmente é um nó de texto, então pegamos o elemento pai (tag)
+				let element = selection.anchorNode.nodeType === 3 
+					? selection.anchorNode.parentNode 
+					: selection.anchorNode;
+				const tagName = element.tagName;
+				console.log("Cursor está na tag:", tagName);
+				// Você pode atualizar a UI aqui (ex: destacar botão de Negrito se for <B>)
+				var t = -1;
+				while (element != editor && (t=eTag(element.tagName))==-1) element = element.parentNode;
+				selTagName.value = (t!=-1?element.tagName:'');
+			}
+		}
+		editor.addEventListener('keyup', _mov);
+		editor.addEventListener('mouseup', _mov);
+
+
+		// *************************** COLAR ********************************//
 		editor.addEventListener('paste',async (ev)=>{
 			//FILTROS disponíveis...
 			// ideal ARRAY não OBJECT para PRIORIDADE no tipo em detrimento de outro
@@ -995,7 +1030,7 @@
 
 		function novoDoc() {
 			if (confirm('Deseja limpar todo o conteúdo?')) {
-				editor.innerHTML = '<br>';
+				editor.innerHTML = '<br/>';
 				docName = docNameP;
 				atualizarContadores();
 			}
