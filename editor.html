@@ -216,7 +216,24 @@
 			font-family: monospace;
 			font-size: 80%;			
 		}
+		.form-group {
+			display: grid;
+			grid-template-rows: auto 1fr; /* Label ocupa o espaço necessário, input ocupa o restante */
+			gap: 4px;
+		}
+
+		.form-group label {
+			font-size: 0.6em;
+			color: #555;
+		}
+
+		.form-group input {
+			padding: 8px;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+		}		
 	</style>
+
 </head>
 <body>
 		<div class="toolbar">
@@ -281,7 +298,7 @@
 	<input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(this.files)">
 
 	<script>
-		const docNameP = 'documento.html'; 
+		const docNameP = 'documento.html';
 		var docName = docNameP;
 		const editor = document.getElementById('editor');
 		const selTagName = document.getElementById('selTagName');
@@ -1028,11 +1045,14 @@
 			}
 		}
 
+		function novoDocS() {
+			editor.innerHTML = '<br/>';
+			docName = docNameP;
+			atualizarContadores();
+		}
 		function novoDoc() {
 			if (confirm('Deseja limpar todo o conteúdo?')) {
-				editor.innerHTML = '<br/>';
-				docName = docNameP;
-				atualizarContadores();
+				novoDocS();
 			}
 		}
 
@@ -1076,23 +1096,68 @@
 		}
 
 		function saveContent() {
-			// definir o nome padrao
-			var docD;
+			var n = saveContentNameH()
+				
+			var D = new dialogo('<div class="form-group"><h4>download como</h4>'
+					+'<label>nome</label>'
+					+'<input name=nome value="'+n[0]+'">'
+					+'<label>extensão</label>'
+					+'<input name=ext value="'+n[1]+'">'
+				,''
+					+'<button class=btn name="auto">auto</button>'
+					+'<button class=btn name="ok">OK</button>'
+					+'<button class=btn name="c">Cancelar</button>'
+					+'</div>'
+				,(ev)=>{
+					var name = ev.target.name;
+					var i = D.dom.querySelectorAll('input');
+					_d(ev.target.tagName+' n('+n+')',ev,i);
+					if (name=='c') {
+						D.close();
+						return
+					} else if (name=='auto') {
+						var n = saveContentNameH();
+						i[0].value = n[0];
+						i[1].value = n[1];
+					} else if (name=='ok') {
+						docName = i[0].value+(i[1].value?'.'+i[1].value:'');
+						D.close();
+						saveContent1();
+					}
+				}
+			);
+			D.show();
+			return
+		}
+		function saveContentNameE(n) {
+			if (n.length - n.lastIndexOf('.')<5) {
+				return n.substring(n.lastIndexOf('.')+1);
+			} else {
+				return docNameP.substring(docNameP.lastIndexOf('.')+1);
+			}
+			
+		}
+		function saveContentNameH() {
 			for (const i of 'h1 h2 h3 h4'.split(' ')) {
 				const t = editor.querySelector(i);
 				if (t) {
 					//lert('dsfsdfsdf ('+t.textContent+')');
-					docD = t.textContent.replaceAll(':','𒑖').trim().replaceAll('.',' -');
-					break;
+					var n = t.textContent.replaceAll(':','\uFF1A').trim().replaceAll('.',' -');
+					return [n,saveContentNameE(n)];
 				}
 			}
-			// o nome padrao mudou ?
+			var p = docName.lastIndexOf('.');
+			return [p==-1?docName:docName.substring(0,p),saveContentNameE(docName)];
+		}		
+		function saveContent1() {
+			/*/ o nome padrao mudou ?
 			if ( docName == docNameP ) {
 				docName = docD;
 			} else if (docName != docD 
 				&& confirm('download como:\n\n OK:\n"'+docD+'"?\n\nCancelar:\n"'+docName+'"') ) { 
 				docName = docD;
 			}
+			*/
 			var content = htmlTrim(editor.innerHTML);
 			var p;
 			if ((p=content.indexOf(ini))!=-1)
@@ -1121,6 +1186,9 @@
 			;
 			//alert(content);
 			//lert(content);
+			const mime = {html:'text/html',txt:'text/plain',ovpn:'application/x-openvpn-profile'
+				,json:'application/json',js:'text/javascript'
+			};
 			const blob = new Blob([content], { type: 'text/html' });
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
@@ -1128,7 +1196,10 @@
 			a.download = docName;
 			a.click();
 			URL.revokeObjectURL(url);
-			setTimeout(capturarJanela);
+			//setTimeout(capturarJanela);
+			if (confirm('LIMPAR o conteúdo do EDITOR ?')) {
+				novoDocS();
+			}
 			//lert('Conteúdo salvo com sucesso!');
 		}		
 
@@ -1236,6 +1307,8 @@
 		};			
 		
 	</script>
+
+
 </body>
 </html>
 
