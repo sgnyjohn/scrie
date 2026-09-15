@@ -298,6 +298,10 @@
 	<input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(this.files)">
 
 	<script>
+		const mime = {html:'text/html',htm:'text/html',txt:'text/plain'
+			,ovpn:'application/x-openvpn-profile'
+			,json:'application/json',js:'text/javascript'
+		};		
 		const docNameP = 'documento.html';
 		var docName = docNameP;
 		const editor = document.getElementById('editor');
@@ -1015,6 +1019,7 @@
             const conteudo = ''+e.target.result; 
             if (conteudo.indexOf('<')!=-1) {
               if (file.name) docName = file.name;
+              //lert('docName='+docName+' '+file.name);
               abreContent(conteudo);
             } else {
               if (confirm('colar como txt (sim) ou texto (nao)..\n\n'+conteudo)) {
@@ -1096,7 +1101,7 @@
 		}
 
 		function saveContent() {
-			var n = saveContentNameH()
+			var n = saveContentNameH(false);
 				
 			var D = new dialogo('<div class="form-group"><h4>download como</h4>'
 					+'<label>nome</label>'
@@ -1116,7 +1121,7 @@
 						D.close();
 						return
 					} else if (name=='auto') {
-						var n = saveContentNameH();
+						var n = saveContentNameH(true);
 						i[0].value = n[0];
 						i[1].value = n[1];
 					} else if (name=='ok') {
@@ -1129,25 +1134,26 @@
 			D.show();
 			return
 		}
-		function saveContentNameE(n) {
-			if (n.length - n.lastIndexOf('.')<5) {
-				return n.substring(n.lastIndexOf('.')+1);
-			} else {
-				return docNameP.substring(docNameP.lastIndexOf('.')+1);
-			}
-			
-		}
-		function saveContentNameH() {
-			for (const i of 'h1 h2 h3 h4'.split(' ')) {
-				const t = editor.querySelector(i);
-				if (t) {
-					//lert('dsfsdfsdf ('+t.textContent+')');
-					var n = t.textContent.replaceAll(':','\uFF1A').trim().replaceAll('.',' -');
-					return [n,saveContentNameE(n)];
+		function saveContentNameH(auto) {
+			if (auto || docName == docNameP) {
+				for (const i of 'h1 h2 h3 h4'.split(' ')) {
+					const t = editor.querySelector(i);
+					if (t) {
+						//lert('dsfsdfsdf ('+t.textContent+')');
+						var n = t.textContent.replaceAll(':','\uFF1A').trim();//.replaceAll('.',' -');
+						var p = n.lastIndexOf('.');
+						if (p>1 && n.length-p<6) {
+							return [n.substring(0,p),n.substring(p+1)];
+						}
+					}
 				}
 			}
 			var p = docName.lastIndexOf('.');
-			return [p==-1?docName:docName.substring(0,p),saveContentNameE(docName)];
+			if (p==-1) {
+				return [docName,''];
+			} else {
+				return [docName.substring(0,p),docName.substring(p+1)];
+			}
 		}		
 		function saveContent1() {
 			/*/ o nome padrao mudou ?
@@ -1158,38 +1164,49 @@
 				docName = docD;
 			}
 			*/
-			var content = htmlTrim(editor.innerHTML);
-			var p;
-			if ((p=content.indexOf(ini))!=-1)
-				content = content.substring(p+ini.length);
-			if ((p=content.indexOf(fim))!=-1)
-				content = content.substring(0,p);
-			content = '<!DOCTYPE html>'
-				+'\n<html lang="pt-BR">'
-				+'\n<meta charset="UTF-8">'
-				+'\n<head><title>'+docName+'</title>'
-				+'\n<style>'
-					+'\n* {background-color:#222;color:#eef;'
-						+'\nfont-family:ReithSans,Helvetica,Arial,sans-serif;letter-spacing:0.04em;}'
-					+'\nDIV.scrieConteudo{margin:5% 10%;} A {color:#88f;}'
-					+'\nul,ol li {margin-left: 25px;}'
-					+'\ncode {font-family: monospace;font-size: 80%;font-weight: 700;}'
-					+'\npre {margin: 5px;padding: 5px;border:1px solid;font-family: monospace;font-size: 80%;font-weight: 500;}'
-				+'\n</style>\n'
-				+'\n</head>'
-				+'\n<body>'
-				+'\n'+ini
-				+'\n'+content
-				+'\n'+fim
-				+'\n</body>'
-				+'\n</html>'
-			;
+			var content;
+			var ext = 'txt';
+			var ep = docName.lastIndexOf('.');
+			if (ep!=-1) {
+				ext = docName.toLowerCase().substring(ep+1);
+			}
+			if (' htm html '.indexOf(' '+ext+' ')!=-1) {
+				content = htmlTrim(editor.innerHTML);
+				var p;
+				if ((p=content.indexOf(ini))!=-1)
+					content = content.substring(p+ini.length);
+				if ((p=content.indexOf(fim))!=-1)
+					content = content.substring(0,p);
+				content = '<!DOCTYPE html>'
+					+'\n<html lang="pt-BR">'
+					+'\n<meta charset="UTF-8">'
+					+'\n<head><title>'+docName+'</title>'
+					+'\n<style>'
+						+'\n* {background-color:#222;color:#eef;'
+							+'\nfont-family:ReithSans,Helvetica,Arial,sans-serif;letter-spacing:0.04em;}'
+						+'\nDIV.scrieConteudo{margin:5% 10%;} A {color:#88f;}'
+						+'\nul,ol li {margin-left: 25px;}'
+						+'\ncode {font-family: monospace;font-size: 80%;font-weight: 700;}'
+						+'\npre {margin: 5px;padding: 5px;border:1px solid;font-family: monospace;font-size: 80%;font-weight: 500;}'
+					+'\n</style>\n'
+					+'\n</head>'
+					+'\n<body>'
+					+'\n'+ini
+					+'\n'+content
+					+'\n'+fim
+					+'\n</body>'
+					+'\n</html>'
+				;
+			} else {
+				content = editor.textContent;
+			}
 			//alert(content);
 			//lert(content);
-			const mime = {html:'text/html',txt:'text/plain',ovpn:'application/x-openvpn-profile'
-				,json:'application/json',js:'text/javascript'
-			};
-			const blob = new Blob([content], { type: 'text/html' });
+
+			var mim = mime[ext];
+			if (!mim) mim = mime['txt'];
+   		//lert('ext='+ext+' mime='+mim+'\n\ncontent = '+content);
+			const blob = new Blob([content], { type: mim });
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
