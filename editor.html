@@ -648,9 +648,9 @@
 				//	console.log(dat);
 				//}
 				//,
-				'text/html':(ht)=>{
+				'text/html':(ht,tps)=>{
 					//ht = ht.replaceAll('://','...');
-					const style = prompt('m - manter atributos style\nr - remover atributos\ni - html integral','m').toLowerCase();
+					const style = prompt('m - manter atributos style\nr - remover atributos\ni - html integral\n\ntipos: '+tps,'m').toLowerCase();
 					if (style=='i') {
 						document.execCommand('insertHTML',false,ht);
 						return;
@@ -719,7 +719,7 @@
 					// perguntar text/plain text/html text/rtf image...
 				}
 				,
-				'text/plain':(tx)=>{
+				'text/plain':(tx,tps)=>{
 					const v = tx.trim().split('\n');
 					//
 					function comoDB(del) {
@@ -784,6 +784,7 @@
 							+'<button class=btn name="csv">csv / calc</button>'
 							+'<button class=btn name="txt">texto</button>'
 							+'<button class=btn name="c">cancelar</button>'
+							+'<p>tipos: '+tps+'</p>'
 						,(ev)=>{
 							var t = ev.target;
 							var n = t.name;
@@ -817,7 +818,6 @@
 			//colar IMAGEM *//
 			var items = event.clipboardData.items;
 			for (const item of items) {
-				console.log('item '+item.type);
 				if (item.type.indexOf('image') == -1) continue;
 				ev.preventDefault();
 				const blob = await convertPngToJpg(item.getAsFile());
@@ -838,22 +838,25 @@
 				return;
 			}
 			
-			// COLAR html txt etc...
-			for (var i in ev.clipboardData.types) {
-				const tp = ev.clipboardData.types[i];
-				if (filtros[tp]) {
-					//getData funciona uma ÚNICA vez
-					const data = ev.clipboardData.getData(tp);
-					try {
-						filtros[tp](data);
-						ev.preventDefault();
-						console.log('OK filtro '+tp);
-						return;
-					} catch (e) {
-						console.log('ERRO filtro '+tp,e);
+			// COLAR html txt etc... preferencia pelo 1o encontrado.
+			for (const fl in filtros) {
+				for (var i in ev.clipboardData.types) {
+					const tp = ev.clipboardData.types[i].toLowerCase();
+					//console.log('filtro '+fl+' item '+i);
+					if (tp==fl) { //filtros[tp]) {
+						//getData funciona uma ÚNICA vez
+						const data = ev.clipboardData.getData(tp);
+						try {
+							filtros[tp](data,ev.clipboardData.types);
+							ev.preventDefault();
+							console.log('OK filtro '+tp);
+							return;
+						} catch (e) {
+							alert('ERRO filtro '+tp,e);
+						}
+					} else {
+						//console.log('paste tipo('+tp+') sem filtro ');
 					}
-				} else {
-					console.log('paste tipo('+tp+') sem filtro ');
 				}
 			}
 			
@@ -884,7 +887,7 @@
 		const fim = '</div><!--scrieConteudo-->';
 
 		function dialogo(titulo, tx, func) {
-		  d('criar dialogo');
+		  //d('criar dialogo');
 			this.show = () =>  {
 				document.body.appendChild(overlay);
 			}
@@ -1002,10 +1005,9 @@
 				img.src = url;
 			});
 		}
+
+		const d = console.log;
 		
-		function d(s) {
-			console.log(s);
-		}
 		// Manipular upload de arquivos
 		function handleFileUpload(files) {
 			selectedFiles = Array.from(files);
@@ -1137,13 +1139,15 @@
 		function saveContentNameH(auto) {
 			if (auto || docName == docNameP) {
 				for (const i of 'h1 h2 h3 h4'.split(' ')) {
-					const t = editor.querySelector(i);
+					var t = editor.querySelector(i);
 					if (t) {
 						//lert('dsfsdfsdf ('+t.textContent+')');
 						var n = t.textContent.replaceAll(':','\uFF1A').trim();//.replaceAll('.',' -');
 						var p = n.lastIndexOf('.');
 						if (p>1 && n.length-p<6) {
 							return [n.substring(0,p),n.substring(p+1)];
+						} else {
+							return [n,docNameP.substring(docNameP.lastIndexOf('.')+1)];
 						}
 					}
 				}
