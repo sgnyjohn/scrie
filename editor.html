@@ -185,13 +185,11 @@
 			transform: translate(-50%, -50%);
 			margin: 0;			
 		}
-
 		/* Estilo do fundo (backdrop) */
 		dialog::backdrop {
 			background-color: rgba(0, 0, 0, 0.5);
 			backdrop-filter: blur(2px); /* Efeito de desfoque ao fundo */
 		}
-
 		dialog .acoes {
 			margin-top: 20px;
 			text-align: right;
@@ -201,6 +199,10 @@
 		}
 		.btn {
 			padding: 8px 20px; background: #4f46e5; color: #fff;
+			border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem;
+		}
+		.btn1 {
+			padding: 4px 10px; background: #4f46e5; color: #fff;
 			border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem;
 		}
 		code {
@@ -650,73 +652,97 @@
 				//,
 				'text/html':(ht,tps)=>{
 					//ht = ht.replaceAll('://','...');
-					const style = prompt('m - manter atributos style\nr - remover atributos\ni - html integral\n\ntipos: '+tps,'m').toLowerCase();
-					if (style=='i') {
-						document.execCommand('insertHTML',false,ht);
-						return;
-					}
-					const d = document.createElement('div');
-					d.innerHTML = htmlTrim(ht);
-					//ht = getHtml(d); d.innerHTML = ht; //retira brancos entre tags
-					function removeSrc(el) {
-					}
-					function removerTodosOsAtributos(ele) {
-						if (!ele || ele.nodeType !== 1) {
-							return;
+					function colaFiltrando(style) {
+						const d = document.createElement('div');
+						d.innerHTML = htmlTrim(ht);
+						//ht = getHtml(d); d.innerHTML = ht; //retira brancos entre tags
+						function removeSrc(el) {
 						}
-						const tn = ele.tagName.toLowerCase();
-						//mantem tag integral
-						if (' svg '.indexOf(tn)>0) {
-							return;
-						}
-						const attr = Array.from(ele.attributes);
-						for (let i = 0; i < attr.length; i++) {
-							// removeAttribute é mais seguro e direto do que setAttribute(attr.name, null)
-							const an = attr[i].name.toLowerCase();
-							if (an == 'src') 
-								removeSrc(ele,attr[i].name);
-							//console.log(attr[i].name,ele.tagName);
-							//if (an != 'style' && 'a.href img.src'.indexOf(tn+'.'+an)==-1)
-							// REMOVE TODOS ATTR exceto OS LISTADOS abaixo - style pode conter posicionamento
-							//   todo - fazer filtro CSS/style
-							if ('a.href img.src'.indexOf(tn+'.'+an)==-1 && style=='r' ) {// && an!='style') {
-								console.log('rm attr '+tn+'.'+an);
-								ele.removeAttribute(attr[i].name);
+						function removerTodosOsAtributos(ele) {
+							if (!ele || ele.nodeType !== 1) {
+								return;
 							}
-						}
-						if (tn=='img') {
-							ele.setAttribute('style','max-width:85%;min-width:3%;');
-						}
-						const children = Array.from(ele.children);
-						if (' section div span h1 h2 h3 '.indexOf(tn)>0) {
-							//adiciona todos os filhos após ele
-							// Verificamos se existe algum filho que seja do tipo TEXT_NODE (tipo 3)
-							const temTextoDireto = Array.from(ele.childNodes).some(
-								(node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0
-							);
-							//elimina tag e substitui pelos filhos ?
-							if (!temTextoDireto && tn!='a') {
-								if (ele.childNodes.length > 0) {
-									console.log(tn+' vai substituir com os filhos...');
-									ele.replaceWith(...ele.childNodes);
-								} else {
-									console.log('DEL '+tn+' vazia...');
-									//ele.setAttribute('style','display:none;');
-									ele.remove();
+							const tn = ele.tagName.toLowerCase();
+							//mantem tag integral
+							if (' svg '.indexOf(tn)>0) {
+								return;
+							}
+							const attr = Array.from(ele.attributes);
+							for (let i = 0; i < attr.length; i++) {
+								// removeAttribute é mais seguro e direto do que setAttribute(attr.name, null)
+								const an = attr[i].name.toLowerCase();
+								if (an == 'src') 
+									removeSrc(ele,attr[i].name);
+								//console.log(attr[i].name,ele.tagName);
+								//if (an != 'style' && 'a.href img.src'.indexOf(tn+'.'+an)==-1)
+								// REMOVE TODOS ATTR exceto OS LISTADOS abaixo - style pode conter posicionamento
+								//   todo - fazer filtro CSS/style
+								if ('a.href img.src'.indexOf(tn+'.'+an)==-1 && style=='r' ) {// && an!='style') {
+									console.log('rm attr '+tn+'.'+an);
+									ele.removeAttribute(attr[i].name);
 								}
 							}
+							if (tn=='img') {
+								ele.setAttribute('style','max-width:85%;min-width:3%;');
+							}
+							const children = Array.from(ele.children);
+							if (' section div span h1 h2 h3 '.indexOf(tn)>0) {
+								//adiciona todos os filhos após ele
+								// Verificamos se existe algum filho que seja do tipo TEXT_NODE (tipo 3)
+								const temTextoDireto = Array.from(ele.childNodes).some(
+									(node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0
+								);
+								//elimina tag e substitui pelos filhos ?
+								if (!temTextoDireto && tn!='a') {
+									if (ele.childNodes.length > 0) {
+										console.log(tn+' vai substituir com os filhos...');
+										ele.replaceWith(...ele.childNodes);
+									} else {
+										console.log('DEL '+tn+' vazia...');
+										//ele.setAttribute('style','display:none;');
+										ele.remove();
+									}
+								}
+							}
+							
+							for (let i = 0; i < children.length; i++) {
+								removerTodosOsAtributos(children[i]);
+							}
 						}
-						
-						for (let i = 0; i < children.length; i++) {
-							removerTodosOsAtributos(children[i]);
-						}
+						//remover atributos
+						removerTodosOsAtributos(d);
+						//event.clipboardData.setData('text/html',d.innerHTML);
+						//alert('html='+d.innerHTML);
+						document.execCommand('insertHTML',false,d.innerHTML);
+						// perguntar text/plain text/html text/rtf image...
 					}
-					//remover atributos
-					removerTodosOsAtributos(d);
-					//event.clipboardData.setData('text/html',d.innerHTML);
-					//alert('html='+d.innerHTML);
-					document.execCommand('insertHTML',false,d.innerHTML);
-					// perguntar text/plain text/html text/rtf image...
+					var dg = new dialogo('<h1>colar HTML</h1>'
+						,''
+							+'<p style="text-align:left;line-height: 2.6;">'
+							+'<button class=btn1 name="m">manter atributos style</button>'
+							+'<br><button class=btn1 name="r">remover atributos</button>'
+							+'<br><button class=btn1 name="i">html integral</button>'
+							+'<br><button class=btn name="c">cancelar</button>'
+							+'</p>'
+							+'<p>tipos: '+tps+'</p>'
+						,(ev)=>{
+							var t = ev.target;
+							var n = t.name;
+							_d('clicou '+t+' '+t.tagName+' '+t.className+' n('+n);
+							if (n=='i') {
+								dg.close();
+								document.execCommand('insertHTML',false,ht);
+								return;
+							} else if (n=='m'||n=='r') {
+								dg.close();
+								colaFiltrando(n);
+							} else if (n=='c') {
+								dg.close();
+							}
+						}
+					);
+					dg.show();					
+					//const style = prompt('m - manter atributos style\nr - remover atributos\ni - html integral\n\ntipos: '+tps,'m').toLowerCase();
 				}
 				,
 				'text/plain':(tx,tps)=>{
@@ -948,6 +974,43 @@
 			
 		}
 
+		async function replaceImageUrlsWithBase64(domObject) {
+			// Seleciona todos os elementos que representam abas (ajuste conforme necessário)
+			const tabs = domObject.querySelectorAll('[role="tab"], .tab, [class*="tab"]');
+
+			for (const tab of tabs) {
+				// Seleciona todas as imagens dentro da aba
+				const images = tab.querySelectorAll('img');
+
+				for (const img of images) {
+					const src = img.src;
+					if (!src || src.startsWith('data:')) continue; // Ignora se já for Base64
+
+					try {
+						// Busca a imagem
+						const response = await fetch(src);
+						if (!response.ok) throw new Error(`Failed to fetch image: ${src}`);
+
+						const blob = await response.blob();
+						const base64 = await new Promise((resolve, reject) => {
+							const reader = new FileReader();
+							reader.onload = () => resolve(reader.result);
+							reader.onerror = reject;
+							reader.readAsDataURL(blob);
+						});
+
+						// Substitui o src pela versão Base64
+						img.src = base64;
+					} catch (error) {
+						console.error(`Erro ao processar imagem ${src}:`, error);
+					}
+				}
+			}
+		}
+
+		// Exemplo de uso:
+		// const domObject = document; // ou qualquer outro objeto DOM
+		// replaceImageUrlsWithBase64(domObject);
 		
 		
 		//objeto tabela / calc
